@@ -1,0 +1,195 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // Helper Functions
+    // =========================================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function memberDoc(llcId) {
+      return get(/databases/$(database)/documents/llcs/$(llcId)/members/$(request.auth.uid));
+    }
+
+    function isMember(llcId) {
+      return isSignedIn() && memberDoc(llcId).data.status == "active";
+    }
+
+    function role(llcId) {
+      return memberDoc(llcId).data.role;
+    }
+
+    function hasRole(llcId, roles) {
+      return isMember(llcId) && roles.hasAny([role(llcId)]);
+    }
+
+    // Property scoping: if user has property scopes, limit access
+    function canAccessProperty(llcId, propertyId) {
+      let scopes = memberDoc(llcId).data.propertyScopes;
+      return scopes == null || scopes.size() == 0 || scopes.hasAny([propertyId]);
+    }
+
+    // Case scoping: restricted cases require explicit access
+    function canAccessCase(llcId, caseId) {
+      let r = role(llcId);
+      if (r == "admin" || r == "legal") return true;
+      let scopes = memberDoc(llcId).data.caseScopes;
+      return scopes != null && scopes.hasAny([caseId]);
+    }
+
+    // =========================================================================
+    // Platform Accounts (top-level)
+    // =========================================================================
+
+    match /platformAccounts/{platformAccountId} {
+      allow read: if isSignedIn() && resource.data.ownerUserId == request.auth.uid;
+      allow write: if false; // Functions only
+    }
+
+    // =========================================================================
+    // LLCs
+    // =========================================================================
+
+    match /llcs/{llcId} {
+      allow read: if isMember(llcId);
+      allow write: if hasRole(llcId, ["admin"]);
+    }
+
+    match /llcs/{llcId}/members/{userId} {
+      allow read: if isMember(llcId);
+      allow write: if hasRole(llcId, ["admin"]);
+    }
+
+    // =========================================================================
+    // Properties & Units
+    // =========================================================================
+
+    match /llcs/{llcId}/properties/{propertyId} {
+      allow read: if isMember(llcId) && canAccessProperty(llcId, propertyId);
+      allow create, update, delete: if hasRole(llcId, ["admin", "manager"]);
+    }
+
+    match /llcs/{llcId}/properties/{propertyId}/units/{unitId} {
+      allow read: if isMember(llcId) && canAccessProperty(llcId, propertyId);
+      allow create, update, delete: if hasRole(llcId, ["admin", "manager"]);
+    }
+
+    // =========================================================================
+    // Tenants
+    // =========================================================================
+
+    match /llcs/{llcId}/tenants/{tenantId} {
+      allow read: if hasRole(llcId, ["admin", "manager", "legal", "accounting"])
+                  || (role(llcId) == "tenant" && resource.data.userId == request.auth.uid);
+      allow write: if hasRole(llcId, ["admin", "manager", "legal"]);
+    }
+
+    // =========================================================================
+    // Leases
+    // =========================================================================
+
+    match /llcs/{llcId}/leases/{leaseId} {
+      allow read: if isMember(llcId) && (
+        hasRole(llcId, ["admin", "manager", "legal", "accounting"]) ||
+        (role(llcId) == "tenant" && request.auth.uid in resource.data.tenantUserIds)
+      );
+      allow write: if hasRole(llcId, ["admin", "manager", "legal"]);
+    }
+
+    // =========================================================================
+    // Charges & Payments
+    // =========================================================================
+
+    match /llcs/{llcId}/charges/{chargeId} {
+      allow read: if hasRole(llcId, ["admin", "manager", "accounting", "legal"])
+                  || (role(llcId) == "tenant" && request.auth.uid == resource.data.tenantUserId);
+      allow write: if hasRole(llcId, ["admin", "accounting"]);
+    }
+
+    match /llcs/{llcId}/payments/{paymentId} {
+      allow read: if hasRole(llcId, ["admin", "manager", "accounting", "legal"])
+                  || (role(llcId) == "tenant" && request.auth.uid == resource.data.tenantUserId);
+      allow create: if role(llcId) == "tenant";
+      allow update, delete: if false; // Functions only (webhook)
+    }
+
+    // =========================================================================
+    // Ledger (Functions only)
+    // =========================================================================
+
+    match /llcs/{llcId}/ledgerEntries/{entryId} {
+      allow read: if hasRole(llcId, ["admin", "accounting", "manager"]);
+      allow write: if false; // Functions only
+    }
+
+    // =========================================================================
+    // Bills & Vendors
+    // =========================================================================
+
+    match /llcs/{llcId}/vendors/{vendorId} {
+      allow read: if hasRole(llcId, ["admin", "manager", "accounting"]);
+      allow write: if hasRole(llcId, ["admin", "accounting"]);
+    }
+
+    match /llcs/{llcId}/bills/{billId} {
+      allow read: if hasRole(llcId, ["admin", "manager", "accounting"]);
+      allow write: if hasRole(llcId, ["admin", "accounting"]);
+    }
+
+    match /llcs/{llcId}/utilityAccounts/{utilityId} {
+      allow read: if hasRole(llcId, ["admin", "manager", "accounting"]);
+      allow write: if hasRole(llcId, ["admin", "accounting"]);
+    }
+
+    // =========================================================================
+    // Work Orders
+    // =========================================================================
+
+    match /llcs/{llcId}/workOrders/{workOrderId} {
+      allow read: if hasRole(llcId, ["admin", "manager", "maintenance"])
+                  || (role(llcId) == "tenant" && resource.data.requestedByTenantId == request.auth.uid);
+      allow create: if hasRole(llcId, ["admin", "manager", "maintenance", "tenant"]);
+      allow update: if hasRole(llcId, ["admin", "manager", "maintenance"]);
+      allow delete: if hasRole(llcId, ["admin", "manager"]);
+    }
+
+    // =========================================================================
+    // Legal Cases
+    // =========================================================================
+
+    match /llcs/{llcId}/cases/{caseId} {
+      allow read: if isMember(llcId) && canAccessCase(llcId, caseId);
+      allow write: if hasRole(llcId, ["admin", "legal"]);
+    }
+
+    match /llcs/{llcId}/cases/{caseId}/tasks/{taskId} {
+      allow read: if isMember(llcId) && canAccessCase(llcId, caseId);
+      allow write: if hasRole(llcId, ["admin", "legal"]);
+    }
+
+    match /llcs/{llcId}/cases/{caseId}/documents/{docId} {
+      allow read: if isMember(llcId) && canAccessCase(llcId, caseId);
+      allow write: if hasRole(llcId, ["admin", "legal"]);
+    }
+
+    // =========================================================================
+    // Audit Logs (Read-only, Functions write)
+    // =========================================================================
+
+    match /llcs/{llcId}/auditLogs/{logId} {
+      allow read: if hasRole(llcId, ["admin", "legal", "accounting"]);
+      allow write: if false; // Functions only
+    }
+
+    // =========================================================================
+    // Stripe Events (Platform-level idempotency tracking)
+    // =========================================================================
+
+    match /stripeEvents/{eventId} {
+      allow read, write: if false; // Functions only
+    }
+  }
+}
