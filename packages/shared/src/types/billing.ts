@@ -57,6 +57,7 @@ export interface Bill {
 export interface BillAllocation {
   unitId: string;
   amount: number; // In cents
+  tenantId?: string;
 }
 
 export interface BillAttachment {

@@ -2,6 +2,53 @@ import { Timestamp } from './common';
 import { CaseStatus, CaseVisibility, TaskStatus, TaskPriority } from '../constants/statuses';
 
 /**
+ * Plaintiff - who is bringing the case
+ */
+export interface PlaintiffIndividual {
+  type: 'individual';
+  name: string;
+}
+
+export interface PlaintiffLlc {
+  type: 'llc';
+  llcId: string;
+  llcName: string;
+}
+
+export type Plaintiff = PlaintiffIndividual | PlaintiffLlc;
+
+/**
+ * Opposing party - who the case is against
+ */
+export interface OpposingPartyTenant {
+  type: 'tenant';
+  tenantId: string;
+  tenantName: string;
+  propertyAddress?: string;
+  tenantStatus?: 'active' | 'past';
+  email?: string;
+  phone?: string;
+}
+
+export interface OpposingPartyOther {
+  type: 'other';
+  name: string;
+}
+
+export type OpposingParty = OpposingPartyTenant | OpposingPartyOther;
+
+/**
+ * Opposing counsel contact information
+ */
+export interface OpposingCounsel {
+  name: string;
+  email?: string;
+  phone?: string;
+  firmName?: string;
+  address?: string;
+}
+
+/**
  * Legal case - lawsuit, eviction, dispute, etc.
  */
 export interface Case {
@@ -16,9 +63,11 @@ export interface Case {
   caseType: CaseType;
   status: CaseStatus;
   visibility: CaseVisibility;
-  opposingParty?: string;
-  opposingCounsel?: string;
+  plaintiff?: Plaintiff;
+  opposingParty?: OpposingParty;
+  opposingCounsel?: OpposingCounsel;
   ourCounsel?: string;
+  caseManagers: string[]; // user IDs who can edit/archive this case
   filingDate?: string; // ISO date
   nextHearingDate?: string; // ISO date
   description?: string;

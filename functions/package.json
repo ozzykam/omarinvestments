@@ -16,7 +16,7 @@
     "clean": "rm -rf dist node_modules"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20"
   },
   "dependencies": {
     "firebase-admin": "^12.0.0",

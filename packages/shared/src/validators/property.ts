@@ -22,13 +22,34 @@ export const propertyStatusSchema = z.enum([
   PROPERTY_STATUSES.sold,
 ]);
 
+export const parcelInfoSchema = z.object({
+  pid: z.string().max(50).optional(),
+  parcelAreaSqft: z.number().positive().optional(),
+  torrensAbstract: z.enum(['torrens', 'abstract']).optional(),
+  addition: z.string().max(200).optional(),
+  lot: z.string().max(50).optional(),
+  block: z.string().max(50).optional(),
+  metesAndBounds: z.string().max(500).optional(),
+  assessedYear: z.number().int().min(1900).max(2100).optional(),
+  marketValue: z.number().nonnegative().optional(),
+  totalTax: z.number().nonnegative().optional(),
+  countyPropertyType: z.string().max(100).optional(),
+  homestead: z.boolean().optional(),
+  schoolDistrict: z.string().max(50).optional(),
+  sewerDistrict: z.string().max(50).optional(),
+  watershedDistrict: z.string().max(50).optional(),
+});
+
 export const createPropertySchema = z.object({
   name: z.string().max(200).optional(),
   type: propertyTypeSchema,
   address: addressSchema,
+  county: z.string().max(100).optional(),
+  yearBuilt: z.number().int().min(1600).max(2100).optional(),
   status: propertyStatusSchema.default('active'),
   purchaseDate: z.string().datetime().optional(),
   purchasePrice: z.number().positive().optional(),
+  parcelInfo: parcelInfoSchema.optional(),
   notes: z.string().max(2000).optional(),
 });
 

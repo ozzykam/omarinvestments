@@ -16,6 +16,8 @@ export * from './constants/statuses';
 // Validators
 export * from './validators/llc';
 export * from './validators/property';
+export * from './validators/tenant';
+export * from './validators/lease';
 export * from './validators/legal';
 export * from './validators/payments';
 

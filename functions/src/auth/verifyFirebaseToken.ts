@@ -20,6 +20,10 @@ export async function verifyFirebaseToken(req: Request): Promise<AuthenticatedUs
 
   const idToken = authHeader.split('Bearer ')[1];
 
+  if (!idToken) {
+    return null;
+  }
+
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
     return {

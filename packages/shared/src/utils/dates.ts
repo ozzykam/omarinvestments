@@ -21,7 +21,7 @@ export function getPeriodFromDate(date: Date): string {
  * Parse period string to start/end dates
  */
 export function parsePeriod(period: string): { start: Date; end: Date } {
-  const [year, month] = period.split('-').map(Number);
+  const [year, month] = period.split('-').map(Number) as [number, number];
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 0); // Last day of month
   return { start, end };
@@ -39,7 +39,7 @@ export function isDateInPeriod(date: Date, period: string): boolean {
  * Get next period
  */
 export function getNextPeriod(period: string): string {
-  const [year, month] = period.split('-').map(Number);
+  const [year, month] = period.split('-').map(Number) as [number, number];
   if (month === 12) {
     return `${year + 1}-01`;
   }
@@ -50,7 +50,7 @@ export function getNextPeriod(period: string): string {
  * Get previous period
  */
 export function getPreviousPeriod(period: string): string {
-  const [year, month] = period.split('-').map(Number);
+  const [year, month] = period.split('-').map(Number) as [number, number];
   if (month === 1) {
     return `${year - 1}-12`;
   }

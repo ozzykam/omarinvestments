@@ -35,9 +35,8 @@ service cloud.firestore {
     // Case scoping: restricted cases require explicit access
     function canAccessCase(llcId, caseId) {
       let r = role(llcId);
-      if (r == "admin" || r == "legal") return true;
       let scopes = memberDoc(llcId).data.caseScopes;
-      return scopes != null && scopes.hasAny([caseId]);
+      return r == "admin" || r == "legal" || (scopes != null && scopes.hasAny([caseId]));
     }
 
     // =========================================================================

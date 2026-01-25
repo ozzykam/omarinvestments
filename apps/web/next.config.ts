@@ -3,9 +3,6 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@shared/types'],
-  serverActions: {
-    bodySizeLimit: '2mb',
-  },
   images: {
     remotePatterns: [
       {
@@ -13,6 +10,9 @@ const nextConfig: NextConfig = {
         hostname: 'storage.googleapis.com',
       },
     ],
+  },
+  turbopack: {
+    root: '../../',
   },
 };
 

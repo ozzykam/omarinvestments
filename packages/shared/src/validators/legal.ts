@@ -29,6 +29,42 @@ export const caseVisibilitySchema = z.enum([
   CASE_VISIBILITIES.llcWide,
 ]);
 
+export const plaintiffSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('individual'),
+    name: z.string().min(1).max(200),
+  }),
+  z.object({
+    type: z.literal('llc'),
+    llcId: z.string().min(1),
+    llcName: z.string().min(1).max(200),
+  }),
+]);
+
+export const opposingPartySchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('tenant'),
+    tenantId: z.string().min(1),
+    tenantName: z.string().min(1).max(200),
+    propertyAddress: z.string().max(500).optional(),
+    tenantStatus: z.enum(['active', 'past']).optional(),
+    email: z.string().email().optional(),
+    phone: z.string().max(20).optional(),
+  }),
+  z.object({
+    type: z.literal('other'),
+    name: z.string().min(1).max(200),
+  }),
+]);
+
+export const opposingCounselSchema = z.object({
+  name: z.string().min(1).max(200),
+  email: z.string().email().optional(),
+  phone: z.string().max(20).optional(),
+  firmName: z.string().max(200).optional(),
+  address: z.string().max(500).optional(),
+});
+
 export const createCaseSchema = z.object({
   propertyId: z.string().optional(),
   unitId: z.string().optional(),
@@ -39,9 +75,11 @@ export const createCaseSchema = z.object({
   caseType: caseTypeSchema,
   status: caseStatusSchema.default('open'),
   visibility: caseVisibilitySchema.default('llcWide'),
-  opposingParty: z.string().max(200).optional(),
-  opposingCounsel: z.string().max(200).optional(),
+  plaintiff: plaintiffSchema.optional(),
+  opposingParty: opposingPartySchema.optional(),
+  opposingCounsel: opposingCounselSchema.optional(),
   ourCounsel: z.string().max(200).optional(),
+  caseManagers: z.array(z.string()).default([]),
   filingDate: z.string().datetime().optional(),
   nextHearingDate: z.string().datetime().optional(),
   description: z.string().max(5000).optional(),

@@ -37,5 +37,5 @@ export function isValidDocId(id: string): boolean {
  */
 export function extractLlcIdFromPath(path: string): string | null {
   const match = path.match(/^llcs\/([^/]+)/);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }
